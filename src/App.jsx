@@ -1,3 +1,8 @@
+import ChatHeader from "./components/ChatHeader";
+import Welcome from "./components/Welcome";
+import MessageList from "./components/MessageList";
+import QuickReplies from "./components/QuickReplies";
+import ChatFooter from "./components/ChatFooter";
 import { useState } from "react";
 import "./App.css";
 
@@ -46,6 +51,7 @@ function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [messages, setMessages] = useState([
     {
@@ -67,7 +73,44 @@ function App() {
     "Prizes",
   ];
 
-  const sendMessage = async () => {
+  const callAPI = async (text) => {
+    setLoading(true);
+    try {
+      const response = await fetch(import.meta.env.VITE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: text,
+        }),
+      });
+
+      const data = await response.json();
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          text: data.answer || "Sorry I couldn't generate a response",
+        },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          type: "bot",
+          text: "Sorry, something went wrong. Please try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = () => {
     if (!message.trim()) return;
 
     const userText = message;
@@ -83,34 +126,10 @@ function App() {
 
     setMessage("");
 
-    try {
-      const response = await fetch(
-        "https://bot-ai-1-372t.onrender.com/api/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: userText,
-          }),
-        },
-      );
-      const data = await response.json();
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          type: "bot",
-          text: data.answer,
-        },
-      ]);
-    } catch (err) {
-      console.error("API error", err);
-    }
+    callAPI(userText);
   };
 
-  const handleQuickReply = async (text) => {
+  const handleQuickReply = (text) => {
     setMessages((prev) => [
       ...prev,
       {
@@ -120,33 +139,7 @@ function App() {
       },
     ]);
 
-    try {
-      const response = await fetch(
-        "https://bot-ai-1-372t.onrender.com/api/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: text,
-          }),
-        },
-      );
-
-      const data = await response.json();
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          type: "bot",
-          text: data.answer,
-        },
-      ]);
-    } catch (error) {
-      console.error("API Error:", error);
-    }
+    callAPI(text);
   };
 
   const closeChat = () => {
@@ -177,84 +170,28 @@ function App() {
       {/* Chat Window */}
       {isOpen && (
         <div className={`chat-widget ${isClosing ? "closing" : ""}`}>
-          {/* Header */}
-          <div className='chat-header'>
-            <div className='header-left'>
-              <div className='bot-avatar'>🐣</div>
+          <ChatHeader onClose={closeChat} />
 
-              <div>
-                <h2>Kikoo Assistant</h2>
-
-                <div className='online'>
-                  <span></span>
-                  Online
-                </div>
-              </div>
-            </div>
-
-            <button className='close-btn' onClick={closeChat}>
-              ×
-            </button>
-          </div>
-
-          {/* Messages */}
           <div className='chat-body'>
-            <div className='welcome'>
-              <div className='welcome-avatar'>🐣</div>
+            <Welcome />
 
-              <h3>Hi there! 👋</h3>
+            <MessageList
+              messages={messages}
+              renderMessage={renderMessage}
+              loading={loading}
+            />
 
-              <p>I'm here to help you with Kikoo.</p>
-            </div>
-
-            <div className='messages'>
-              {messages.map((msg) => (
-                <div key={msg.id} className={`message-row ${msg.type}`}>
-                  {msg.type === "bot" && <div className='small-avatar'>🐣</div>}
-
-                  <div className='message-content'>
-                    <div className='message-bubble'>
-                      {renderMessage(msg.text)}
-                    </div>
-
-                    <span className='message-time'>Just now</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Quick replies */}
-            <div className='quick-replies'>
-              {quickReplies.map((item) => (
-                <button key={item} onClick={() => handleQuickReply(item)}>
-                  {item}
-                </button>
-              ))}
-            </div>
+            <QuickReplies
+              quickReplies={quickReplies}
+              onQuickReply={handleQuickReply}
+            />
           </div>
 
-          {/* Input */}
-          <div className='chat-footer'>
-            <div className='input-wrapper'>
-              <input
-                type='text'
-                placeholder='Type your message...'
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    sendMessage();
-                  }
-                }}
-              />
-
-              <button className='send-btn' onClick={sendMessage}>
-                ↑
-              </button>
-            </div>
-
-            <div className='powered'>Powered by Kikoo</div>
-          </div>
+          <ChatFooter
+            message={message}
+            setMessage={setMessage}
+            onSend={sendMessage}
+          />
         </div>
       )}
     </>

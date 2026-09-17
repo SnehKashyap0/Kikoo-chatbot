@@ -144,18 +144,19 @@ body,
 }
 
 .bot-avatar {
-  width: 43px;
-  height: 43px;
-
-  border-radius: 50%;
-
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  background: #fce2e5;
-
-  font-size: 22px;
+.bot-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .header-left h2 {
@@ -189,26 +190,23 @@ body,
 }
 
 .close-btn {
-  width: 35px;
-  height: 35px;
-
+  width: 36px;
+  height: 36px;
   border: none;
-
-  border-radius: 50%;
-
   background: transparent;
-
-  font-size: 28px;
-
-  line-height: 1;
-
-  color: #806f68;
-
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff4e7d;
+  font-size: 18px;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #f8f2f0;
+  background: #f5eeee;
+  color: #c05470;
 }
 
 .chat-widget {
@@ -279,21 +277,19 @@ body,
 }
 
 .welcome-avatar {
-  width: 50px;
-  height: 50px;
-
-  margin: auto;
-  margin-bottom: 9px;
-
-  border-radius: 50%;
-
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  background: #fce2e5;
-
-  font-size: 25px;
+.welcome-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .welcome h3 {
@@ -305,7 +301,7 @@ body,
 }
 
 .welcome p {
-  margin: 0;
+  margin-bottom: 8px;
 
   font-size: 12px;
 
@@ -338,21 +334,31 @@ body,
   flex-direction: row-reverse;
 }
 
+.message-row.bot {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .small-avatar {
-  width: 27px;
-  height: 27px;
-
+  width: 35px;
+  height: 35px;
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
+}
 
-  border-radius: 50%;
+.small-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
 
-  background: #fce2e5;
-
-  font-size: 14px;
+.message-content {
+  display: flex;
+  flex-direction: column;
 }
 
 .message-content {
