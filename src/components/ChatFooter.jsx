@@ -21,7 +21,6 @@ function ChatFooter({
     setListening(false);
   };
 
-  // chat band ho to mic bhi band
   useEffect(() => {
     return () => {
       wantListening.current = false;
