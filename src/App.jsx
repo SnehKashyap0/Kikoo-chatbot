@@ -3,8 +3,18 @@ import Welcome from "./components/Welcome";
 import MessageList from "./components/MessageList";
 import QuickReplies from "./components/QuickReplies";
 import ChatFooter from "./components/ChatFooter";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./App.css";
+
+const toAudioUrl = (b64) => {
+  if (b64.startsWith("data:")) return b64;
+  const mime = b64.startsWith("UklGR")
+    ? "audio/wav"
+    : b64.startsWith("T2dnU")
+      ? "audio/ogg"
+      : "audio/mpeg"; 
+  return `data:${mime};base64,${b64}`;
+};
 
 const renderMessage = (text) => {
   const parts = text.split(/(Instagram:|YouTube:|Facebook:|X \(Twitter\):)/);
@@ -52,6 +62,11 @@ function App() {
   const [isClosing, setIsClosing] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const audioCache = useRef(new Map());
+  const audioRef = useRef(null);
+  const speakToken = useRef(0);
+  const [speaking, setSpeaking] = useState(false);
+  const [voiceDraft, setVoiceDraft] = useState(false);
 
   const [messages, setMessages] = useState([
     {
@@ -73,7 +88,57 @@ function App() {
     "Prizes",
   ];
 
-  const callAPI = async (text) => {
+  const stopSpeaking = () => {
+    speakToken.current += 1; 
+    audioRef.current?.pause();
+    setSpeaking(false);
+  };
+
+  const speak = async (text) => {
+    stopSpeaking(); 
+    const myToken = speakToken.current;
+    setSpeaking(true);
+
+    try {
+      let url = audioCache.current.get(text);
+
+      if (!url) {
+        const res = await fetch(import.meta.env.VITE_SPEAK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error(`Speak API error: ${res.status}`);
+
+        const type = res.headers.get("content-type") || "";
+        if (type.startsWith("audio/")) {
+          url = URL.createObjectURL(await res.blob());
+        } else {
+          const data = await res.json();
+          if (!data.audio) {
+            console.log("speak response keys:", Object.keys(data));
+            setSpeaking(false);
+            return;
+          }
+          url = toAudioUrl(data.audio);
+        }
+        audioCache.current.set(text, url);
+      }
+
+      if (myToken !== speakToken.current) return;
+
+      const audio = new Audio(url);
+      window.debugAudioUrl = url;
+      audioRef.current = audio;
+      audio.onended = () => setSpeaking(false);
+      await audio.play();
+    } catch (err) {
+      console.error(err);
+      setSpeaking(false);
+    }
+  };
+
+  const callAPI = async (text, viaVoice = false) => {
     setLoading(true);
     try {
       const response = await fetch(import.meta.env.VITE_API_URL, {
@@ -87,15 +152,18 @@ function App() {
       });
 
       const data = await response.json();
+      const answer = data.answer || "Sorry I couldn't generate a response";
 
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now(),
           type: "bot",
-          text: data.answer || "Sorry I couldn't generate a response",
+          text: answer,
         },
       ]);
+
+      if (viaVoice && data.answer) speak(answer);
     } catch (error) {
       setMessages((prev) => [
         ...prev,
@@ -113,7 +181,11 @@ function App() {
   const sendMessage = () => {
     if (!message.trim()) return;
 
+    stopSpeaking(); 
+
     const userText = message;
+    const viaVoice = voiceDraft;
+    setVoiceDraft(false);
 
     setMessages((prev) => [
       ...prev,
@@ -126,7 +198,7 @@ function App() {
 
     setMessage("");
 
-    callAPI(userText);
+    callAPI(userText, viaVoice);
   };
 
   const handleQuickReply = (text) => {
@@ -143,6 +215,7 @@ function App() {
   };
 
   const closeChat = () => {
+    stopSpeaking();
     setIsClosing(true);
 
     setTimeout(() => {
@@ -191,6 +264,9 @@ function App() {
             message={message}
             setMessage={setMessage}
             onSend={sendMessage}
+            setVoiceDraft={setVoiceDraft}
+            speaking={speaking}
+            onStopSpeaking={stopSpeaking}
           />
         </div>
       )}

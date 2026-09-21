@@ -531,6 +531,23 @@ body,
 
   color: #b4a6a0;
 }
+.mic-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #aa9b95;
+  font-size: 15px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.mic-btn.listening,
+.mic-btn.speaking {
+  background: #ffe3ea;
+  color: #ff4e7d;
+}
 
 /* MOBILE */
 
